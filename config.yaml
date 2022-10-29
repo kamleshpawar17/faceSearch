@@ -1,11 +1,12 @@
 # Params for Face Detection 
 FD_IMAGE_SIZE: 300  # Image size for face detection
 FD_THRESHOLD: 0.9 # threshold for face detection
+FD_BOX_SCALE: 0.05 # increase/decrease the FD box size, 0.1 mean increase fd box by 10%
 
 # Params face embeddings
 FE_IMAGE_SIZE: 96 # image size for computing face enbeddings
 MIN_FACE_SIZE: 20 # minimum size of the face for calculating enbedding, smaller faces are ignored
-FE_SCALE_FACTOR: 1.0 # scale the estimated face embedding by the factor, reuired for LSH to work more accurately
+FE_SCALE_FACTOR: 10.0 # scale the estimated face embedding by the factor, reuired for LSH to work more accurately
 
 # Params for face search using Locality-Sensitive-Hashing (LSH)
 IMAGE_TYPES: ['*.jpg', '*.png']

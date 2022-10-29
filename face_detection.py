@@ -15,6 +15,7 @@ class detectFace:
         self.net = cv2.dnn.readNetFromCaffe(config["FD_PROTO"], config["FD_WEIGHTS"])
         self.net.setPreferableTarget(config["TARGET_COMPUTE"])
         self.threshold = config["FD_THRESHOLD"]
+        self.fd_box_scale = config["FD_BOX_SCALE"]
 
     def detect_face(self, frame: cv2.Mat) -> List[np.array]:
         """face detection function
@@ -49,7 +50,13 @@ class detectFace:
             detections = detections[:, :, indx_face, :]
             for k in range(number_of_faces):
                 # box: [start_x, start_y, end_x, end_y]
-                box = detections[0, 0, k, 3:] * np.array([W, H, W, H])
+                # self.fd_box_scale modifies the box as
+                # (detections[0, 0, k, 3:] + (self.fd_box_scale * np.array([-1.0, -1.0, 1.0, 1.0])) *  detections[0, 0, k, 3:])
+                box = (
+                    detections[0, 0, k, 3:]
+                    + (self.fd_box_scale * np.array([-1.0, -1.0, 1.0, 1.0]))
+                    * detections[0, 0, k, 3:]
+                ) * np.array([W, H, W, H])
                 # clip out of bound bounding boxes
                 box[[0, 2]] = np.clip(box[[0, 2]], a_min=0, a_max=W - 1)
                 box[[1, 3]] = np.clip(box[[1, 3]], a_min=0, a_max=H - 1)

@@ -18,7 +18,8 @@ if __name__ == "__main__":
     input_dir = "input_images/"
     # input_image = "input_images/shivani_pp_one_photo.jpg"
     # input_image = "input_images/kamlesh_pp_one_photo.png"
-    input_image = "input_images/Kiara_pp_new.png"
+    # input_image = "input_images/Kiara_pp_new.png"
+    input_image = "input_images/001552.jpg"
     # face_search.register_faces_from_dir(input_dir)
-    similar_faces_names = face_search.search_similar_faces(input_image, 20)
+    similar_faces_names = face_search.search_similar_faces(input_image, 23)
     face_search.show_images(input_image, similar_faces_names, base_path="input_images/")
