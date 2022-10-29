@@ -1,26 +1,26 @@
 # Params for Face Detection 
 FD_IMAGE_SIZE: 300  # Image size for face detection
-FD_THRESHOLD: 0.5 # threshold for face detection
+FD_THRESHOLD: 0.9 # threshold for face detection
 
 # Params face embeddings
 FE_IMAGE_SIZE: 96 # image size for computing face enbeddings
 MIN_FACE_SIZE: 20 # minimum size of the face for calculating enbedding, smaller faces are ignored
-FE_SCALE_FACTOR: 1000.0 # scale the estimated face embedding by the factor, reuired for LSH to work more accurately
+FE_SCALE_FACTOR: 1.0 # scale the estimated face embedding by the factor, reuired for LSH to work more accurately
 
 # Params for face search using Locality-Sensitive-Hashing (LSH)
 IMAGE_TYPES: ['*.jpg', '*.png']
-HASH_LENGTH: 8
-NUMBER_OF_TABLES: 1
-BUCKETS: 4
-RADIUS: 1
+OVERWRITE_MODEL: True
+NUMBER_OF_NEIGHBOURS: 10
+NUMBER_OF_LEAVES: 500
+NUMBER_OF_LEAVES_TO_SEARCH: 200
+ANISOTROPIC_QUANTIZATION_THRSHLD: 0.2
 
 # model file paths
 FD_PROTO: 'models/deploy_res10_300x300_ssd_iter_140000.prototxt'
 FD_WEIGHTS: 'models/res10_300x300_ssd_iter_140000.caffemodel'
 FE_MODEL: 'models/nn4.small2.v1.t7'
-LSH_MODEL: 'models/lsa_model.obj'
-FACE_EMBEDDINGS: 'models/face_embeddings.obj'
-FACE_IMAGE_NAMES: 'models/face_imgage_names.obj'
+SCANN_MODEL: 'models/scann_model/'
+FACE_IMAGE_NAMES: 'models/face_image_names.obj'
 
 
 # Hardware optimization params

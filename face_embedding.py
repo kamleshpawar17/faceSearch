@@ -71,12 +71,14 @@ class getFaceEmbeddings:
             Tuple[np.array, List]: face embedding array for all the images, list of the names of the images
         """
         face_embeddings = []
-        face_image_names, face_index = [], 0
+        face_image_names, face_index = {}, 0
         input_dir = Path(input_dir)
         # loop through all types of image file
+        number_of_images = 0
         for image_type in self.image_types:
             # loop through all images of one type
             fnames = list(input_dir.glob(image_type))
+            number_of_images += len(fnames)
             for fname in tqdm(fnames):
                 fname = str(fname)
                 # read image
@@ -87,8 +89,9 @@ class getFaceEmbeddings:
                 if len(face_rects) > 0:
                     face_embedding = self.get_128d_face_embeddings(frame, face_rects)
                     face_embeddings.extend(face_embedding)
-                    for _ in range(face_index, face_index + len(face_embedding)):
-                        face_image_names.append(fname)
+                    for k in range(face_index, face_index + len(face_embedding)):
+                        face_image_names[str(k)] = fname.split("/")[-1]
                     face_index += len(face_embedding)
         face_embeddings = np.squeeze(np.array(face_embeddings))
+        logger.info(f"Total number of input images were: {number_of_images}")
         return face_embeddings, face_image_names

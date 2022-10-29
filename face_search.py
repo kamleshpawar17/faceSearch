@@ -1,4 +1,5 @@
 import pickle
+import os
 from pathlib import Path
 from typing import Any, List
 
@@ -6,69 +7,98 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 from loguru import logger
-from lshashing import LSHRandom
-from tqdm import tqdm
 
 from face_detection import detectFace
 from face_embedding import getFaceEmbeddings
+import scann
 
 
 class faceSearch:
+    """face search class for creating a face serach model using face detection anf face embeddings.
+    The model for knn serach is scann library
+    """
+
     def __init__(self, config: dict) -> None:
-        self.model_path = Path(config["LSH_MODEL"])
-        self.embeddings_path = Path(config["FACE_EMBEDDINGS"])
+        self.model_path = config["SCANN_MODEL"]
         self.image_types = config["IMAGE_TYPES"]
-        self.hash_len = config["HASH_LENGTH"]
-        self.num_tables = config["NUMBER_OF_TABLES"]
+        self.num_neighbours = config["NUMBER_OF_NEIGHBOURS"]
+        self.num_leaves = config["NUMBER_OF_LEAVES"]
         self.face_image_names_path = config["FACE_IMAGE_NAMES"]
-        self.buckets = config["BUCKETS"]
-        self.radius = config["RADIUS"]
+        self.num_leaves_to_search = config["NUMBER_OF_LEAVES_TO_SEARCH"]
+        self.anisotropic_quatization_thrshld = config[
+            "ANISOTROPIC_QUANTIZATION_THRSHLD"
+        ]
+        self.overwrite_model = config["OVERWRITE_MODEL"]
         self.face_detector = detectFace(config)
         self.face_embedder = getFaceEmbeddings(config)
-        if self.model_path.exists() and self.embeddings_path.exists():
-            with open(self.model_path, "rb") as file:
-                self.lsh_model = pickle.load(file)
-            with open(self.face_image_names_path, "rb") as file:
-                self.face_image_names = pickle.load(file)
-            with open(self.embeddings_path, "rb") as file:
-                self.embeddings = pickle.load(file)
+        if Path(self.model_path).exists():
+            self.searcher = scann.scann_ops_pybind.load_searcher(self.model_path)
         else:
-            self.lsh_model = None
-
-        # self.lsh_model = None
+            os.makedirs(self.model_path, exist_ok=True)
 
     def register_faces_from_dir(self, input_dir: str) -> None:
-        # get face embeddings
-        (
-            face_embeddings,
-            face_image_names,
-        ) = self.face_embedder.get_face_embeddings_from_dir(input_dir)
+        """this function:
+        1. runs face detection
+        2. extract face embeddings from detected faces
+        3. creates the scann model using face embeddings
+        4. optionally saves the model
 
-        # create the LSH model
-        if self.lsh_model is None:
-            self.embeddings = face_embeddings
-            self.face_image_names = face_image_names
-            self.lsh_model = LSHRandom(
-                face_embeddings, hash_len=self.hash_len, num_tables=self.num_tables
+        Args:
+            input_dir (str): input directoty with all the images of faces
+        """
+        # get face embeddings
+        logger.info("calculating face embeddings for input images....")
+        (
+            self.face_embeddings,
+            self.face_image_names,
+        ) = self.face_embedder.get_face_embeddings_from_dir(input_dir)
+        logger.info(
+            f"completed calculating {len(self.face_embeddings)} face embeddings"
+        )
+
+        # create scann model
+        logger.info("creating scann model....")
+        self.searcher = (
+            scann.scann_ops_pybind.builder(
+                self.face_embeddings, self.num_neighbours, "dot_product"
             )
-        else:
-            self.embeddings = np.concatenate((self.embeddings, face_embeddings), axis=0)
-            self.face_image_names.extend(face_image_names)
-            self.lsh_model.add_new_entry(face_embeddings)
+            .tree(
+                num_leaves=self.num_leaves,
+                num_leaves_to_search=self.num_leaves_to_search,
+                training_sample_size=len(self.face_embeddings),
+            )
+            .score_ah(
+                2,
+                anisotropic_quantization_threshold=self.anisotropic_quatization_thrshld,
+            )
+            .reorder(self.face_embeddings.shape[-1])
+            .build()
+        )
 
         # save model and data
-        with open(self.model_path, "wb") as file:
-            pickle.dump(self.lsh_model, file)
-        with open(self.embeddings_path, "wb") as file:
-            pickle.dump(self.embeddings, file)
-        with open(self.face_image_names_path, "wb") as file:
-            pickle.dump(self.face_image_names, file)
+        if self.overwrite_model:
+            logger.info(f"saving scann model to {self.model_path}")
+            self.searcher.serialize(self.model_path)
+            with open(self.face_image_names_path, "wb") as file:
+                pickle.dump(self.face_image_names, file)
+        else:
+            logger.warning(f"Not saving scann model")
 
-    def search_similar_faces(self, input_image: str, number_of_images: int) -> Any:
+    def search_similar_faces(self, input_image: str, number_of_images: int) -> List:
+        """function to search similar faces for the given face
+
+        Args:
+            input_image (str): input image face
+            number_of_images (int): number of similar faces to find
+
+        Returns:
+            List: list of the names of images consisting of the closely matching faces to the input image
+        """
         # read image
         frame = cv2.imread(input_image)
         # detect faces
         face_rects = self.face_detector.detect_face(frame)
+        logger.info(f"number of faces detected: {len(face_rects)}")
         # compute face embeddings
         if len(face_rects) > 0:
             face_embedding = np.squeeze(
@@ -76,29 +106,29 @@ class faceSearch:
             )
             if len(face_embedding.shape) == 1:
                 face_embedding = np.expand_dims(face_embedding, 0)
-            # knn serach using LSH model
-            nearest_faces = np.array(
-                self.lsh_model.knn_search(
-                    self.embeddings,
-                    face_embedding[0, :],
-                    k=number_of_images,
-                    buckets=self.buckets,
-                    radius=self.radius,
-                )
-            )
-            face_names_index = nearest_faces[:, 1].astype("int")
-            similar_faces_names = list(np.take(self.face_image_names, face_names_index))
 
-            for table in self.lsh_model.tables:
-                logger.debug(f"self.lsh_model:\n {table.hash_table}")
-            logger.debug(f"self.embeddings: {self.embeddings.shape}")
-            logger.debug(f"face_image_names: {len(self.face_image_names)}")
-            logger.debug(f"nearest_faces:\n {nearest_faces}")
-            logger.debug(f"selected images:\n {similar_faces_names}")
+            # knn serach using scann model
+            neighbors, distances = self.searcher.search_batched(
+                face_embedding, number_of_images
+            )
+            face_names_index = neighbors[0].astype("int").astype("str")
+            similar_faces_names = list(map(self.face_image_names.get, face_names_index))
+
+            for k in zip(neighbors[0], similar_faces_names, distances[0]):
+                logger.debug(f"index, name, distance : {k}")
 
             return similar_faces_names
 
-    def show_images(self, ref_image: str, similar_faces_names: List[str]):
+    def show_images(
+        self, ref_image: str, similar_faces_names: List[str], base_path: str
+    ):
+        """function to dispaly the input and mathched images
+
+        Args:
+            ref_image (str): path tot he input image for searching
+            similar_faces_names (List[str]): names of the similar/matched face images
+            base_path (str): base path to the image directory
+        """
         number_of_images = len(similar_faces_names) + 1
         cols = 4
         rows = np.ceil(number_of_images / cols)
@@ -106,10 +136,11 @@ class faceSearch:
         plt.figure(figsize=(12, 8))
         plt.subplot(rows, cols, 1)
         plt.imshow(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+        plt.title("input image")
         plt.axis("off")
         for k in range(1, number_of_images):
             plt.subplot(rows, cols, k + 1)
-            frame = cv2.imread(similar_faces_names[k - 1])
+            frame = cv2.imread(os.path.join(base_path, similar_faces_names[k - 1]))
             plt.imshow(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
             plt.axis("off")
         plt.tight_layout()

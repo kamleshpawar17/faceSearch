@@ -14,14 +14,11 @@ if __name__ == "__main__":
     with open("config.yaml") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
 
-    # detect face class
-    # face embedding class
-    # search class -> register, search,
     face_search = faceSearch(config)
     input_dir = "input_images/"
     # input_image = "input_images/shivani_pp_one_photo.jpg"
-    input_image = "input_images/kamlesh_pp_one_photo.png"
-    # input_image = "input_images/kiara_pp_2022_2inx2in.png"
-    # face_search.register_faces_from_dir(input_dir)
+    # input_image = "input_images/kamlesh_pp_one_photo.png"
+    input_image = "input_images/Kiara_pp_new.png"
+    face_search.register_faces_from_dir(input_dir)
     similar_faces_names = face_search.search_similar_faces(input_image, 20)
-    face_search.show_images(input_image, similar_faces_names)
+    face_search.show_images(input_image, similar_faces_names, base_path="input_images/")
