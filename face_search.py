@@ -33,6 +33,8 @@ class faceSearch:
         self.face_embedder = getFaceEmbeddings(config)
         if Path(self.model_path).exists():
             self.searcher = scann.scann_ops_pybind.load_searcher(self.model_path)
+            with open(self.face_image_names_path, "rb") as file:
+                self.face_image_names = pickle.load(file)
         else:
             os.makedirs(self.model_path, exist_ok=True)
 
@@ -94,6 +96,7 @@ class faceSearch:
         Returns:
             List: list of the names of images consisting of the closely matching faces to the input image
         """
+        logger.info(f"running face search query on image: {input_image}")
         # read image
         frame = cv2.imread(input_image)
         # detect faces
