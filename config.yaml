@@ -8,12 +8,12 @@ FE_IMAGE_SIZE: 96 # image size for computing face enbeddings
 MIN_FACE_SIZE: 20 # minimum size of the face for calculating enbedding, smaller faces are ignored
 FE_SCALE_FACTOR: 10.0 # scale the estimated face embedding by the factor, reuired for LSH to work more accurately
 
-# Params for face search using Locality-Sensitive-Hashing (LSH)
+# Params for ScaNN model
 IMAGE_TYPES: ['*.jpg', '*.png']
 OVERWRITE_MODEL: True
-NUMBER_OF_NEIGHBOURS: 10
-NUMBER_OF_LEAVES: 500
-NUMBER_OF_LEAVES_TO_SEARCH: 200
+NUMBER_OF_NEIGHBOURS: 10 # number of neighbors 
+NUMBER_OF_LEAVES: 500 # number of leaves in the tree for the model
+NUMBER_OF_LEAVES_TO_SEARCH: 200 
 ANISOTROPIC_QUANTIZATION_THRSHLD: 0.2
 
 # model file paths
