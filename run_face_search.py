@@ -1,25 +1,58 @@
-import yaml
 from loguru import logger
+import yaml
+import fire
 
 from face_search import faceSearch
 
-log_level = "INFO"
-# os.environ["LOGURU_LEVEL"] = log_level
-logger.add("logs/logs.log", level=log_level)
+
+def train_face_searcher(image_database_dir: str, model_dir: str):
+    """function to train a face searcher using an image database
+
+    Args:
+        image_database_dir (str): path to image database ie. a directory containing jpg/png images
+        model_dir (str): path to a directory where a trained scann model will be saved
+    """
+    logger.info("Loading configuration for running train_face_searcher()")
+    with open("config.yaml") as f:
+        config = yaml.load(f, Loader=yaml.FullLoader)
+    config["SCANN_MODEL"] = model_dir
+
+    face_search = faceSearch(config)
+    face_search.register_faces_from_dir(image_database_dir)
+
+
+def search_similar_faces(
+    input_image_file: str,
+    number_of_images: int,
+    model_dir: str,
+    image_database_dir: str,
+):
+    """function to query scann model and retrieve similar images from the database
+
+    Args:
+        input_image_file (str): path to input image file
+        number_of_images (int): number of similar images to be retrieved from the database
+        model_dir (str): path to scann model directory
+        image_database_dir (str): path to image database containing images (jpg/png)
+    """
+    logger.info("Loading configuration for searching similar faces")
+    with open("config.yaml") as f:
+        config = yaml.load(f, Loader=yaml.FullLoader)
+    config["SCANN_MODEL"] = model_dir
+
+    face_search = faceSearch(config)
+    similar_faces_names = face_search.search_similar_faces(
+        input_image_file, number_of_images
+    )
+    face_search.show_images(
+        input_image_file, similar_faces_names, base_path=image_database_dir
+    )
 
 
 if __name__ == "__main__":
-    # ----- read config refer to config.yaml for description of parameters---- #
-    logger.info("Loading configuration")
-    with open("config.yaml") as f:
-        config = yaml.load(f, Loader=yaml.FullLoader)
-
-    face_search = faceSearch(config)
-    input_dir = "input_images/"
-    # input_image = "input_images/shivani_pp_one_photo.jpg"
-    # input_image = "input_images/kamlesh_pp_one_photo.png"
-    # input_image = "input_images/Kiara_pp_new.png"
-    input_image = "input_images/001552.jpg"
-    # face_search.register_faces_from_dir(input_dir)
-    similar_faces_names = face_search.search_similar_faces(input_image, 23)
-    face_search.show_images(input_image, similar_faces_names, base_path="input_images/")
+    fire.Fire(
+        {
+            "train_face_searcher": train_face_searcher,
+            "search_similar_faces": search_similar_faces,
+        }
+    )
