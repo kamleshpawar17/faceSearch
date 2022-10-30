@@ -6,7 +6,7 @@ import numpy as np
 
 class detectFace:
     def __init__(self, config: dict) -> None:
-        """face detection class intialization and methods
+        """face detection class initialization and methods
 
         Args:
             config (dict): dictionary of the config parameters

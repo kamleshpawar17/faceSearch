@@ -14,8 +14,8 @@ import scann
 
 
 class faceSearch:
-    """face search class for creating a face serach model using face detection anf face embeddings.
-    The model for knn serach is scann library
+    """face search class for creating a face search model using face detection anf face embeddings.
+    The model for knn search is scann library
     """
 
     def __init__(self, config: dict) -> None:
@@ -46,7 +46,7 @@ class faceSearch:
         4. optionally saves the model
 
         Args:
-            input_dir (str): input directoty with all the images of faces
+            input_dir (str): input directory with all the images of faces
         """
         # get face embeddings
         logger.info("calculating face embeddings for input images....")
@@ -125,26 +125,28 @@ class faceSearch:
     def show_images(
         self, ref_image: str, similar_faces_names: List[str], base_path: str
     ):
-        """function to dispaly the input and mathched images
+        """function to display the input and matched images
 
         Args:
             ref_image (str): path tot he input image for searching
             similar_faces_names (List[str]): names of the similar/matched face images
             base_path (str): base path to the image directory
         """
-        number_of_images = len(similar_faces_names) + 1
-        cols = 4
-        rows = np.ceil(number_of_images / cols)
+        number_of_images = len(similar_faces_names)
+        cols = 5
+        rows = np.ceil(number_of_images / cols) + 1
         frame = cv2.imread(ref_image)
-        plt.figure(figsize=(12, 8))
-        plt.subplot(rows, cols, 1)
+        plt.figure(figsize=(7, 8))
+        plt.subplot(rows, cols, 3)
         plt.imshow(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
         plt.title("input image")
         plt.axis("off")
-        for k in range(1, number_of_images):
-            plt.subplot(rows, cols, k + 1)
-            frame = cv2.imread(os.path.join(base_path, similar_faces_names[k - 1]))
+
+        for k in range(number_of_images):
+            plt.subplot(rows, cols, k + cols + 1)
+            frame = cv2.imread(os.path.join(base_path, similar_faces_names[k]))
             plt.imshow(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
             plt.axis("off")
+
         plt.tight_layout()
         plt.show()

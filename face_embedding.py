@@ -27,7 +27,7 @@ class getFaceEmbeddings:
     def get_128d_face_embeddings(
         self, frame: cv2.Mat, face_rects: List[np.array]
     ) -> List[np.array]:
-        """function to compute face embedding from the input image with mutiple faces and bounding boxes
+        """function to compute face embedding from the input image with multiple faces and bounding boxes
 
         Args:
             frame (cv2.Mat): input image
@@ -47,7 +47,7 @@ class getFaceEmbeddings:
                     f"size of face ({face_h}, {face_w}) is smaller than {self.min_face_size}, ignoring this instance"
                 )
                 continue
-            # pass the cropped face thorugh the netowrk to compute face embeddings
+            # pass the cropped face thorough the network to compute face embeddings
             blob = cv2.dnn.blobFromImage(
                 face_image,
                 1.0 / 255,
