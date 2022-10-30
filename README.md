@@ -23,3 +23,13 @@ python3 run_face_search.py search_similar_faces --input_image_file=<path to inpu
 first row is the query/input image and rest of the rows are retrieved similar faces images
 
 ![fig1](https://user-images.githubusercontent.com/32892726/198875336-7d1c4e5f-9cdc-44fa-acdf-e57ffc14d792.png)
+
+
+## Dependencies
+```
+scann
+opencv-python
+loguru
+yaml
+fire
+```
