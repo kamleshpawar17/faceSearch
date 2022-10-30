@@ -13,6 +13,7 @@ For searching similar faces from the database use the model in step 3 to find th
 python3 run_face_search.py train_face_searcher --model_dir=<path where the model needs to be saved> --image_database_dir=<directory containing training images (jpg/png)>
 
 ```
+you can modify/optimize the the parameters in ```config.yaml``` for trianing the model.
 
 ## Searching similar faces from the database
 ```
