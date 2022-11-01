@@ -23,7 +23,8 @@ python3 run_face_search.py search_similar_faces --input_image_file=<path to inpu
 ## An example of searching using celebrity database
 first row is the query/input image and rest of the rows are retrieved similar faces images
 
-![fig1](https://user-images.githubusercontent.com/32892726/198875336-7d1c4e5f-9cdc-44fa-acdf-e57ffc14d792.png)
+
+![fig1](https://user-images.githubusercontent.com/32892726/199361706-979cf8c5-929e-4b50-9dce-be6b1eb8dfc2.png)
 
 
 ## Dependencies
