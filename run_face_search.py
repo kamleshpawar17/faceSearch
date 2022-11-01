@@ -1,6 +1,6 @@
-from loguru import logger
-import yaml
 import fire
+import yaml
+from loguru import logger
 
 from face_search import faceSearch
 

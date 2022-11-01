@@ -1,16 +1,16 @@
-import pickle
 import os
+import pickle
 from pathlib import Path
 from typing import List
 
 import cv2
+import hnswlib
 import matplotlib.pyplot as plt
 import numpy as np
 from loguru import logger
 
 from face_detection import detectFace
 from face_embedding import getFaceEmbeddings
-import hnswlib
 
 
 class faceSearch:
@@ -102,6 +102,11 @@ class faceSearch:
             )
             if len(face_embedding.shape) == 1:
                 face_embedding = np.expand_dims(face_embedding, 0)
+            if len(face_rects) > 1:
+                face_embedding = face_embedding[0:1, :]
+                logger.info(
+                    f"more than one face detected, taking first face from {len(face_rects)} faces"
+                )
 
             # knn search using hnswlib model
             neighbors, distances = self.searcher.knn_query(
