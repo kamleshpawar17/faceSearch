@@ -6,9 +6,10 @@ FD_BOX_SCALE: 0.05 # increase/decrease the FD box size, 0.1 mean increase fd box
 # Params face embeddings
 FE_IMAGE_SIZE: 96 # image size for computing face enbeddings
 MIN_FACE_SIZE: 20 # minimum size of the face for calculating enbedding, smaller faces are ignored
-FE_SCALE_FACTOR: 10.0 # scale the estimated face embedding by the factor, reuired for LSH to work more accurately
+FE_SCALE_FACTOR: 1.0 # scale the estimated face embedding by the factor, reuired for LSH to work more accurately
 
 # Params for ScaNN model
+USE_SCANN_MODEL: False
 IMAGE_TYPES: ['*.jpg', '*.png']
 OVERWRITE_MODEL: True
 NUMBER_OF_NEIGHBOURS: 10 # number of neighbors 
@@ -16,11 +17,20 @@ NUMBER_OF_LEAVES: 500 # number of leaves in the tree for the model
 NUMBER_OF_LEAVES_TO_SEARCH: 200 
 ANISOTROPIC_QUANTIZATION_THRSHLD: 0.2
 
+# Params for hnswlib model
+SPACE: 'l2' # l2, cosine or ip
+EF_CONSTRUCTION: 200 # ef_construction - controls index search speed/build speed tradeoff
+M: 16 # M - is tightly connected with internal dimensionality of the data. Strongly affects memory consumption (~M), Higher M leads to higher accuracy/run_time at fixed ef/efConstruction
+# Controlling the recall by setting ef:
+EF: 50 # ef should always be > k (number of neighbors)
+VEC_DIM: 128
+
 # model file paths
 FD_PROTO: 'models/deploy_res10_300x300_ssd_iter_140000.prototxt'
 FD_WEIGHTS: 'models/res10_300x300_ssd_iter_140000.caffemodel'
 FE_MODEL: 'models/nn4.small2.v1.t7'
 SCANN_MODEL: 'models/scann_model/'
+HNSWLIB_MODEL: 'models/hnswlib_model.bin'
 FACE_IMAGE_NAMES: 'models/face_image_names.obj'
 
 

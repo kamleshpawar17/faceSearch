@@ -11,6 +11,7 @@ from loguru import logger
 from face_detection import detectFace
 from face_embedding import getFaceEmbeddings
 import scann
+import hnswlib
 
 
 class faceSearch:
@@ -19,30 +20,28 @@ class faceSearch:
     """
 
     def __init__(self, config: dict) -> None:
-        self.model_path = config["SCANN_MODEL"]
+        self.hnswlib_model_path = config["HNSWLIB_MODEL"]
         self.image_types = config["IMAGE_TYPES"]
-        self.num_neighbours = config["NUMBER_OF_NEIGHBOURS"]
-        self.num_leaves = config["NUMBER_OF_LEAVES"]
         self.face_image_names_path = config["FACE_IMAGE_NAMES"]
-        self.num_leaves_to_search = config["NUMBER_OF_LEAVES_TO_SEARCH"]
-        self.anisotropic_quatization_thrshld = config[
-            "ANISOTROPIC_QUANTIZATION_THRSHLD"
-        ]
+        self.space = config["SPACE"]
+        self.m = config["M"]
+        self.ef_construction = config["EF_CONSTRUCTION"]
+        self.ef = config["EF"]
+        self.dim = config["VEC_DIM"]
         self.overwrite_model = config["OVERWRITE_MODEL"]
         self.face_detector = detectFace(config)
         self.face_embedder = getFaceEmbeddings(config)
-        if Path(self.model_path).exists():
-            self.searcher = scann.scann_ops_pybind.load_searcher(self.model_path)
+        if Path(self.hnswlib_model_path).exists():
+            self.searcher = hnswlib.Index(space=self.space, dim=self.dim)
+            self.searcher.load_index(self.hnswlib_model_path)
             with open(self.face_image_names_path, "rb") as file:
                 self.face_image_names = pickle.load(file)
-        else:
-            os.makedirs(self.model_path, exist_ok=True)
 
     def register_faces_from_dir(self, input_dir: str) -> None:
         """this function:
         1. runs face detection
         2. extract face embeddings from detected faces
-        3. creates the scann model using face embeddings
+        3. creates the hnswlib model using face embeddings
         4. optionally saves the model
 
         Args:
@@ -58,33 +57,28 @@ class faceSearch:
             f"completed calculating {len(self.face_embeddings)} face embeddings"
         )
 
-        # create scann model
-        logger.info("creating scann model....")
-        self.searcher = (
-            scann.scann_ops_pybind.builder(
-                self.face_embeddings, self.num_neighbours, "dot_product"
-            )
-            .tree(
-                num_leaves=self.num_leaves,
-                num_leaves_to_search=self.num_leaves_to_search,
-                training_sample_size=len(self.face_embeddings),
-            )
-            .score_ah(
-                2,
-                anisotropic_quantization_threshold=self.anisotropic_quatization_thrshld,
-            )
-            .reorder(self.face_embeddings.shape[-1])
-            .build()
+        # create hnswlib model
+        logger.info("creating hnswlib model....")
+        # Declaring index
+        self.searcher = hnswlib.Index(space=self.space, dim=self.dim)
+        # init index
+        self.searcher.init_index(
+            max_elements=len(self.face_embeddings),
+            ef_construction=self.ef_construction,
+            M=self.m,
         )
-
-        # save model and data
+        self.searcher.set_ef(self.ef)
+        # put data for indexing
+        self.searcher.add_items(
+            self.face_embeddings, np.arange(len(self.face_embeddings))
+        )
         if self.overwrite_model:
-            logger.info(f"saving scann model to {self.model_path}")
-            self.searcher.serialize(self.model_path)
+            logger.info(f"saving hnswlib model to {self.hnswlib_model_path}")
+            self.searcher.save_index(self.hnswlib_model_path)
             with open(self.face_image_names_path, "wb") as file:
                 pickle.dump(self.face_image_names, file)
         else:
-            logger.warning(f"Not saving scann model")
+            logger.warning(f"Not saving hnswlib model")
 
     def search_similar_faces(self, input_image: str, number_of_images: int) -> List:
         """function to search similar faces for the given face
@@ -110,14 +104,15 @@ class faceSearch:
             if len(face_embedding.shape) == 1:
                 face_embedding = np.expand_dims(face_embedding, 0)
 
-            # knn serach using scann model
-            neighbors, distances = self.searcher.search_batched(
-                face_embedding, number_of_images
+            # knn search using hnswlib model
+            neighbors, distances = self.searcher.knn_query(
+                face_embedding, k=number_of_images
             )
-            face_names_index = neighbors[0].astype("int").astype("str")
+            neighbors, distances = np.squeeze(neighbors), np.squeeze(distances)
+            face_names_index = neighbors.astype("int").astype("str")
             similar_faces_names = list(map(self.face_image_names.get, face_names_index))
 
-            for k in zip(neighbors[0], similar_faces_names, distances[0]):
+            for k in zip(neighbors, similar_faces_names, distances):
                 logger.debug(f"index, name, distance : {k}")
 
             return similar_faces_names
