@@ -1,7 +1,7 @@
 import pickle
 import os
 from pathlib import Path
-from typing import Any, List
+from typing import List
 
 import cv2
 import matplotlib.pyplot as plt
@@ -10,7 +10,6 @@ from loguru import logger
 
 from face_detection import detectFace
 from face_embedding import getFaceEmbeddings
-import scann
 import hnswlib
 
 
